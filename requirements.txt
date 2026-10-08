@@ -1,0 +1,10 @@
+numpy>=1.26
+scipy>=1.11
+pandas>=2.1
+scikit-learn>=1.4
+joblib>=1.3
+vitaldb>=1.4        # VitalDB open surgical-patient dataset client
+wfdb>=4.1           # PhysioNet reader (BIDMC)
+fastapi>=0.110
+uvicorn[standard]>=0.29
+pydantic>=2.6

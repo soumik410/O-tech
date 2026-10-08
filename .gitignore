@@ -1,0 +1,22 @@
+Set-Location "D:\O₂tech"
+
+@'
+.env
+.env.*
+!.env.example
+venv/
+.venv/
+__pycache__/
+*.py[cod]
+.pytest_cache/
+.mypy_cache/
+pip-cache/
+temp/
+wheels/
+data/raw/
+data/cache/
+*.log
+'@ | Set-Content -Path ".gitignore"
+
+Write-Host "`n--- Git ignore file created ---"
+Get-Content ".gitignore"

@@ -1,0 +1,192 @@
+<!DOCTYPE html>
+<html lang="en"><head>
+    <meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1, viewport-fit=cover">
+<title>MultiMon live 3D monitor</title>
+<style>
+:root{--bg:#eef2f6;--fg:#10202f;--mut:#56687a;box-sizing:border-box;padding-top:env(safe-area-inset-top,0px);padding-bottom:env(safe-area-inset-bottom,0px)}
+@media (prefers-color-scheme:dark){:root:not([data-theme="light"]){--bg:#0b1118;--fg:#e8f0f7;--mut:#93a5b7}}
+:root[data-theme="dark"]{--bg:#0b1118;--fg:#e8f0f7;--mut:#93a5b7}
+html{scroll-padding-top:env(safe-area-inset-top,0px)}
+*{box-sizing:border-box}
+body{margin:0;background:var(--bg);color:var(--fg);font:14px/1.4 system-ui,-apple-system,"Segoe UI",Roboto,sans-serif}
+.wrap{max-width:1240px;margin:auto;padding:12px}
+.stage{position:relative;aspect-ratio:16/9;background:#e9eef3;border-radius:12px;overflow:hidden;font-size:clamp(9px,1.12vw,14px);color:#10202f}
+@media (max-width:640px){.stage{aspect-ratio:3/4}}
+#gl{position:absolute;inset:0;width:100%;height:100%}
+.card{position:absolute;background:rgba(255,255,255,.92);border:1px solid rgba(16,32,47,.14);border-radius:.8em;padding:.65em .9em;box-shadow:0 .3em 1.2em rgba(16,32,47,.12);transition:opacity .4s}
+.off{opacity:0;pointer-events:none}
+.lb{position:absolute;left:0;top:0;white-space:nowrap;background:#fff;border:1px solid rgba(16,32,47,.2);border-radius:99px;padding:.15em .7em .15em .5em;font-weight:600;opacity:0;transition:opacity .35s;will-change:transform;pointer-events:none}
+.lb:before{content:"";display:inline-block;width:.6em;height:.6em;border-radius:50%;background:#1f7ae0;margin-right:.45em}
+.vr{display:grid;grid-template-columns:1fr auto 3.2em;gap:.5em;align-items:baseline;padding:.1em 0}.vr b{font:700 1.8em ui-monospace,Menlo,monospace}.vr i{font-style:normal;color:#56687a}
+.lv{padding:.2em .6em;border-radius:.4em;font-weight:700;margin:.12em 0}
+.mods{display:flex;flex-wrap:wrap;gap:.3em;margin:.5em 0}.mods span{background:#e6eef6;border-radius:.4em;padding:.15em .5em}
+.fu{text-align:center;color:#56687a;margin:.2em 0}
+.tr{display:flex;justify-content:space-between;padding:.2em 0;border-bottom:1px solid #e1e8ef}.tr b{font-family:ui-monospace,Menlo,monospace}
+#an,#ra{font-weight:800;margin-top:.4em;opacity:0;transition:opacity .4s}#an{color:#e0293f}#ra{color:#f2701f;font-size:1.25em}
+.r{opacity:0;transition:opacity .5s;text-align:center}.r.on{opacity:1}.ar{color:#56687a;line-height:1}
+.rn{display:flex;flex-wrap:wrap;gap:.4em;justify-content:center}.n{background:#e6eef6;border:1px solid #c9d8e6;border-radius:.4em;padding:.2em .6em;font-weight:600}
+#ct{display:block;font-size:1.15em}#pp{color:#1f7ae0;font-weight:600;margin-top:.2em;min-height:1.2em}
+.bar{display:flex;gap:10px;align-items:center;margin:10px 0}
+button{width:38px;height:38px;border-radius:50%;border:1px solid #c5d0db;background:#fff;color:#10202f;font-size:15px;cursor:pointer}
+button:focus-visible,#sc:focus-visible{outline:2px solid #1f7ae0;outline-offset:2px}
+#sc{flex:1;accent-color:#1f7ae0}#tm{font:12px ui-monospace,Menlo,monospace;color:var(--mut)}
+footer{color:var(--mut);font-size:12px;max-width:80ch}
+
+.rw{display:grid;grid-template-columns:110px 1fr 90px;gap:.5em;align-items:center;margin:.35em 0}.rw em{font-style:normal;color:#56687a;font-size:.95em}.sb{height:.6em;background:#e3eaf1;border-radius:9px;overflow:hidden}.sb i{display:block;height:100%;width:0;border-radius:9px}#why{margin:.3em 0 0;padding-left:1.2em}.ctl{display:flex;gap:.4em;flex-wrap:wrap}.ctl button{width:auto;height:auto;border-radius:.5em;padding:.3em .8em;font-size:1em}
+</style>
+</head>
+<body>
+    <div class="wrap">
+    <div class="stage" id="st"><canvas id="gl"></canvas><div id="lab"></div>
+    <div class="card" style="left:2%;top:3%;padding:.5em .8em"><b>MultiMon</b> research prototype <span id="cn" style="color:#10202f;margin-left:.6em;padding:.1em .6em;border-radius:99px;font-weight:600;background:#f0a020">Waiting for backend</span></div>
+    <div class="card" id="vit" style="right:2%;top:3%;width:19em"></div>
+    <div class="card" id="lad" style="right:2%;top:calc(3% + 12em);width:19em"></div>
+    <div class="card" id="ai" style="left:2%;top:12%;width:26em"><b>AI risk estimate</b>
+    <div id="lvl" style="font:800 1.8em/1.1 system-ui;margin:.2em 0">--</div>
+    <div>Chance of an adverse event within <span id="hz">10</span> min: <b id="pr">--</b></div>
+    <div id="rows" style="margin-top:.5em"></div><div id="miss" style="color:#56687a"></div>
+<div style="margin-top:.4em"><b>Why</b><ul id="why"><li>Waiting for the first full window</li></ul></div>
+<small>Model estimate for clinician review. Not a diagnosis.</small></div>
+<div class="card off" id="emg" style="left:50%;top:3%;transform:translateX(-50%);background:#ffe9ec;border-color:#e0293f;text-align:center;width:27em"><b style="font-size:1.4em;color:#c4132b">⚠ POTENTIAL MEDICAL EMERGENCY</b><br><b>IMMEDIATE CLINICAL REVIEW REQUIRED</b><br><small>Highest model risk level. The system does not treat the patient.</small></div>
+<div class="card" style="left:2%;right:2%;bottom:3%;padding:.5em .8em"><div class="ctl"><span style="align-self:center;color:#56687a">View</span>
+<button data-view="overview">Overview</button><button data-view="patient">Patient</button><button data-view="display">Displays</button><button data-view="edge">Edge unit</button><button id="tl">Labels on/off</button>
+<span style="align-self:center;color:#56687a;margin-left:auto">Drag to rotate, scroll to zoom</span></div></div></div></div>
+<script src="https://cdnjs.cloudflare.com/ajax/libs/three.js/r128/three.min.js"></script>
+<script>
+const $=i=>document.getElementById(i),C=(x,a=0,b=1)=>Math.min(b,Math.max(a,x)),G=(p,m,s)=>Math.exp(-((p-m)**2)/(2*s*s));
+const LC=['#1fb37a','#c9b21f','#f0a020','#f2701f','#e0293f'],LN=['NORMAL','ATTENTION','WARNING','HIGH RISK','EMERGENCY'],T=130;
+const lvl=s=>s<.06?0:s<.25?1:s<.5?2:s<.75?3:4,ix=a=>a<.1?0:a<.3?1:a<.5?2:a<.75?3:4,fmt=s=>(s/60|0)+':'+String(s%60|0).padStart(2,'0');
+
+
+const F=x=>isFinite(x)?Math.round(x):'--',nn=x=>x==null?NaN:x;
+const N=500,B={e:new Float32Array(N).fill(NaN),r:new Float32Array(N).fill(NaN),p:new Float32Array(N).fill(NaN)},push=(a,x)=>{a.copyWithin(0,1);a[N-1]=x};
+let pulse=0,breath=0,hph=0;
+const live={v:{hr:NaN,sp:NaN,rr:NaN,tp:NaN,an:0},r:{e:0,r:0,o:0,h:0,n:0,s:0},L:0,conn:false,ass:null,src:'',seen:{ecg:-1e9,ppg:-1e9,resp:-1e9,spo2:-1e9}};
+function onMsg(m){const now=performance.now(),s=live.seen;
+ if(m.type=='signal'){m.ecg.forEach(x=>push(B.e,nn(x)));m.ppg.forEach(x=>push(B.p,nn(x)));m.resp.forEach(x=>push(B.r,nn(x)));
+  if(m.ecg.length)s.ecg=now;if(m.ppg.length)s.ppg=now;if(m.resp.length)s.resp=now;if(m.spo2!=null){s.spo2=now;live.v.sp=m.spo2}return}
+ if(m.type!='assessment')return;live.ass=m;live.L=m.level;live.src=m.source||'';const c=m.contributions||{},a=k=>c[k]==null?0:C(c[k]/2),q=m.measurements||{};
+ live.r={e:a('ecg'),o:a('oxy'),r:a('resp'),h:a('temp'),s:m.probability,n:0};live.r.n=[live.r.e,live.r.o,live.r.r,live.r.h].filter(x=>x>.3).length;
+ Object.assign(live.v,{hr:nn(q.hr),rr:nn(q.rr),tp:nn(q.temp)});if(q.spo2!=null)live.v.sp=q.spo2;live.v.an=isFinite(live.v.tp)?C(live.v.tp-36.8,0,3):0;showAssessment(m)}
+function connect(){const w=new WebSocket((location.protocol=='https:'?'wss://':'ws://')+location.host+'/ws');
+ w.onopen=()=>live.conn=true;w.onclose=()=>{live.conn=false;setTimeout(connect,2000)};w.onmessage=e=>onMsg(JSON.parse(e.data))}
+const NAMEM={ecg:'ECG',oxy:'SpO₂ and pulse',resp:'Respiration',temp:'Temperature'};
+$('rows').innerHTML=Object.values(NAMEM).map((n,i)=>`<div class="rw"><span>${n}</span><div class="sb"><i id="b${i}"></i></div><em id="s${i}"></em></div>`).join('');
+$('lad').innerHTML=LN.map((n,i)=>`<div class="lv" id="l${i}">${n}</div>`).join('');
+$('vit').innerHTML=[['SpO₂','sp','%'],['Heart rate','hr','BPM'],['Respiratory rate','rr','/min'],['Temperature','tp','°C']].map(a=>`<div class="vr"><span>${a[0]}</span><b id="v_${a[1]}"></b><i>${a[2]}</i></div>`).join('');
+function showAssessment(m){const c=m.contributions||{};Object.keys(NAMEM).forEach((k,i)=>{const v=c[k],el=$('b'+i);el.style.width=(v==null?0:C(v/2)*100)+'%';el.style.background=LC[ix(v==null?0:C(v/2))];$('s'+i).textContent=v==null?'no sensor':(v>.6?'raising risk':v<-.3?'lowering risk':'neutral')});
+ $('pr').textContent=(m.probability*100).toFixed(1)+'%';$('hz').textContent=m.horizon_min;$('lvl').textContent=m.level_name;$('lvl').style.color=LC[m.level];
+ $('why').innerHTML=(m.explanations.length?m.explanations:['No single feature stands out from typical values']).map(s=>`<li>${s}</li>`).join('');
+ $('miss').textContent=m.missing.length?'No data from: '+m.missing.map(k=>NAMEM[k]).join(', '):'';}
+
+const S=[[0,0,4],[40,10,104],[147,38,103],[221,81,58],[252,165,10],[252,255,164]];
+function heatRGB(q){const p=C((q-24)/17)*5,k=Math.min(4,p|0),u=p-k;return S[k].map((c,j)=>c+(S[k+1][j]-c)*u)}
+const hc=q=>'rgb('+heatRGB(q).map(Math.round)+')',heat=q=>new THREE.Color(...heatRGB(q).map(c=>c/255));
+/* screens */
+function rr(x,X,Y,w,h,r){x.beginPath();x.moveTo(X+r,Y);x.arcTo(X+w,Y,X+w,Y+h,r);x.arcTo(X+w,Y+h,X,Y+h,r);x.arcTo(X,Y+h,X,Y,r);x.arcTo(X,Y,X+w,Y,r);x.closePath()}
+function wv(x,a,X,Y,W,H,col){let v=[];for(const q of a)if(isFinite(q))v.push(q);if(v.length<20){x.fillStyle='#8a99a8';x.font='12px system-ui';x.fillText('no signal',X+8,Y+H/2);return}
+ v.sort((p,q)=>p-q);const lo=v[v.length*.02|0],hi=v[v.length*.98|0],pad=(hi-lo||1)*.15;x.strokeStyle=col;x.lineWidth=2;x.beginPath();let on=0;
+ for(let i=0;i<N;i++){const q=a[i];if(!isFinite(q)){on=0;continue}const px=X+i/(N-1)*W,py=Y+H-(q-(lo-pad))/(hi-lo+2*pad)*H;on?x.lineTo(px,py):x.moveTo(px,py);on=1}x.stroke()}
+const cm=document.createElement('canvas');cm.width=640;cm.height=360;const xm=cm.getContext('2d');
+const cg=document.createElement('canvas');cg.width=360;cg.height=440;const xg=cg.getContext('2d');
+function drawMain(v,r,L){const x=xm;x.fillStyle='#f7fafc';x.fillRect(0,0,640,360);x.fillStyle='#e1e9f0';x.fillRect(0,0,640,34);x.fillStyle='#10202f';x.font='600 15px system-ui';x.textAlign='left';x.fillText('Patient P-0042 (anonymized demo)',12,22);
+ x.fillStyle=LC[L];x.fillRect(486,6,144,22);x.fillStyle=L==4?'#fff':'#10202f';x.textAlign='center';x.fillText(LN[L],558,22);x.textAlign='left';
+ x.font='12px system-ui';x.fillStyle='#56687a';x.fillText('ECG',12,54);x.fillText('Respiration',12,150);x.fillText('Pleth (SpO₂)',12,226);
+ wv(x,B.e,12,58,380,80,'#0a8a5a',-.45,1.15);wv(x,B.r,12,154,380,56,'#2f6fd6',-1.5,1.5);wv(x,B.p,12,230,380,50,'#7a4fd6',-.1,1.3);
+ x.font='700 30px ui-monospace,monospace';[[v.hr,'bpm',84,r.e],[v.sp,'% SpO₂',150,r.o],[v.rr,'/min',216,r.r]].forEach(a=>{x.fillStyle=LC[ix(a[3])];x.fillText(F(a[0]),408,a[2]);x.font='12px system-ui';x.fillStyle='#56687a';x.fillText(a[1],456,a[2]);x.font='700 30px ui-monospace,monospace'});
+ const hp=(X,Y,w,h,q)=>{x.fillStyle=hc(q);x.fillRect(X,Y,w,h)},a=v.an;x.fillStyle=hc(35.4+a*.2);x.beginPath();x.arc(580,66,13,0,6.283);x.fill();
+ hp(562,82,36,32,35.8+a);hp(562,114,36,40,35.2+a*.2);hp(550,86,10,70,33.9);hp(600,86,10,70,33.9);hp(564,156,14,70,33.6);hp(582,156,14,70,33.6);
+ x.font='11px system-ui';x.fillStyle='#56687a';x.fillText('Temperature',540,246);
+ x.fillStyle='#56687a';x.fillText('AI risk assessment (estimate, not a diagnosis)',12,300);x.fillStyle='#e3eaf1';x.fillRect(12,306,616,12);x.fillStyle=LC[L];x.fillRect(12,306,616*r.s,12);
+ if(L==4){x.fillStyle='#e0293f';x.fillRect(0,326,640,34);x.fillStyle='#fff';x.font='700 15px system-ui';x.textAlign='center';x.fillText('HIGHEST RISK LEVEL: IMMEDIATE CLINICAL REVIEW REQUIRED',320,348)}}
+function drawGlass(v,r,L){const x=xg;x.clearRect(0,0,360,440);x.fillStyle='rgba(255,255,255,.6)';rr(x,0,0,360,440,18);x.fill();x.strokeStyle='rgba(60,100,140,.5)';x.lineWidth=3;x.stroke();
+ x.fillStyle='#10202f';x.font='600 14px system-ui';x.textAlign='left';x.fillText('3D patient model, live model output',14,26);
+ const hb=1+.25*pulse,br=1+.18*breath;x.fillStyle='rgba(120,165,200,.3)';x.strokeStyle='#4f7a99';x.lineWidth=2;
+ x.beginPath();x.arc(180,78,24,0,6.283);x.fill();x.stroke();[[142,108,76,150,24],[116,114,20,130,10],[224,114,20,130,10],[146,262,30,150,14],[184,262,30,150,14]].forEach(a=>{rr(x,...a);x.fill();x.stroke()});
+ const g=x.createRadialGradient(165,170,2,165,170,56);g.addColorStop(0,`rgba(240,90,30,${.75*r.h})`);g.addColorStop(1,'rgba(240,90,30,0)');x.fillStyle=g;x.fillRect(110,110,110,120);
+ x.globalAlpha=.7;x.fillStyle=LC[ix(r.r)];[160,200].forEach(X=>{x.beginPath();x.ellipse(X,160,15*br,34*br,0,0,6.283);x.fill()});x.globalAlpha=1;
+ x.fillStyle=LC[ix(r.e)];x.beginPath();x.arc(186,172,13*hb,0,6.283);x.fill();
+ const t=(X,Y,l,val,u,c)=>{x.fillStyle='#56687a';x.font='12px system-ui';x.fillText(l,X,Y);x.fillStyle=LC[c];x.font='700 26px ui-monospace,monospace';x.fillText(val,X,Y+28);x.fillStyle='#56687a';x.font='12px system-ui';x.fillText(u,X,Y+44)};
+ t(12,90,'Heart rate',F(v.hr),'BPM',ix(r.e));t(12,230,'Respiratory rate',F(v.rr),'/min',ix(r.r));t(254,90,'Blood oxygen',F(v.sp)+'%','SpO₂',ix(r.o));t(254,230,'Body temperature',(isFinite(v.tp)?v.tp.toFixed(1):'--'),'°C',ix(r.h));
+ x.fillStyle=LC[L];x.font='700 15px system-ui';x.textAlign='center';x.fillText(LN[L],180,430);x.textAlign='left'}
+/* scene */
+const st=$('st'),rd=new THREE.WebGLRenderer({canvas:$('gl'),antialias:true});rd.setPixelRatio(Math.min(2,devicePixelRatio||1));
+const sc=new THREE.Scene();sc.background=new THREE.Color('#e9eef3');sc.fog=new THREE.Fog('#e9eef3',14,32);
+sc.add(new THREE.HemisphereLight('#ffffff','#9fadba',1));const dl=new THREE.DirectionalLight('#ffffff',.65);dl.position.set(3,6,4);sc.add(dl);
+const cam=new THREE.PerspectiveCamera(42,16/9,.1,60);
+const M=(c,r=.5,m=0)=>new THREE.MeshStandardMaterial({color:c,roughness:r,metalness:m}),Bx=(w,h,d)=>new THREE.BoxGeometry(w,h,d),BM=c=>new THREE.MeshBasicMaterial({color:c}),
+add=(g,m,x,y,z,p=sc)=>{const o=new THREE.Mesh(g,m);o.position.set(x,y,z);p.add(o);return o},cyl=(r,l)=>{const g=new THREE.CylinderGeometry(r,r,l,16);g.rotateX(Math.PI/2);return g},
+V3=(...p)=>new THREE.Vector3(...p),crv=(...p)=>new THREE.CatmullRomCurve3(p.map(a=>V3(...a))),cable=(c,col)=>add(new THREE.TubeGeometry(c,14,.004,5),M(col,.8),0,0,0),
+Wt=M('#f7f9fb',.35),Dk=M('#2a3138',.55,.2),Gr=M('#c8d0d7',.5),tm=new THREE.CanvasTexture(cm),tg=new THREE.CanvasTexture(cg);
+add(new THREE.PlaneGeometry(18,12),M('#dfe5ea',.85),0,0,0).rotation.x=-Math.PI/2;add(Bx(18,4.2,.1),M('#f4f6f8',.95),0,2.1,-3.05);add(Bx(.1,4.2,12),M('#f4f6f8',.95),-5.2,2.1,0);add(Bx(18,.08,.02),M('#c5d3df'),0,1,-2.99);
+const sh=(w,d,x,z)=>{add(new THREE.PlaneGeometry(w,d),new THREE.MeshBasicMaterial({color:0,transparent:true,opacity:.12}),x,.012,z).rotation.x=-Math.PI/2};sh(1.5,2.8,0,0);sh(1,1,2.3,-2);sh(.9,.9,3,-2.2);
+/* bed */
+add(Bx(.95,.22,2.15),Wt,0,.36,0);add(Bx(.9,.16,2.05),M('#e5ebf0',.8),0,.55,0);add(Bx(1,.5,.06),Wt,0,.62,-1.1);add(Bx(1,.4,.06),Wt,0,.55,1.1);add(Bx(.4,.1,.3),Wt,0,.685,-.95);
+[-.55,.55].forEach(x=>add(Bx(.04,.2,1.8),Gr,x,.72,0));[-.4,.4].forEach(x=>[-.9,.9].forEach(z=>add(new THREE.CylinderGeometry(.04,.04,.25,10),Dk,x,.125,z)));
+/* patient */
+const parts=[],SK=M('#e2b595',.6),GW=M('#a9cfe8',.7),OR=new THREE.Color('#ff7a30');
+function part(n,g,mt,x,y,z,t0,sx=1){const o=add(g,mt.clone(),x,y,z);o.scale.x=sx;o.userData={c:mt.color.clone(),t0,n};parts.push(o);return o}
+part('head',new THREE.SphereGeometry(.115,20,16),SK,0,.77,-.92,35.4);part('neck',cyl(.045,.12),SK,0,.76,-.78,35.4);
+const ch=part('chest',cyl(.15,.42),GW,0,.78,-.5,35.8,1.3);part('abdomen',cyl(.15,.4),GW,0,.77,-.1,35.2,1.25);
+[-.1,.1].forEach(x=>part('legs',cyl(.07,.7),GW,x,.72,.55,33.6));[-.3,.3].forEach(x=>{part('arms',cyl(.05,.55),SK,x,.72,-.2,33.9);part('hands',new THREE.SphereGeometry(.055,12,10),SK,x,.7,.15,33)});
+/* arch and cameras */
+add(new THREE.TorusGeometry(1.1,.06,14,48,Math.PI),Wt,0,.85,-.2);[-1.1,1.1].forEach(x=>{add(new THREE.CylinderGeometry(.06,.06,.85,14),Wt,x,.425,-.2);add(Bx(.3,.06,.5),Wt,x,.03,-.2)});
+add(Bx(.1,.1,.1),Wt,0,1.93,-.2);add(Bx(.75,.14,.32),Wt,0,1.84,-.2);add(Bx(.2,.12,.16),Dk,-.2,1.72,-.2);add(new THREE.CylinderGeometry(.05,.05,.04,16),M('#35465a',.2,.5),-.2,1.64,-.2);
+add(Bx(.26,.1,.14),Dk,.2,1.72,-.2);[.14,.26].forEach(x=>add(new THREE.CylinderGeometry(.025,.025,.03,12),M('#35465a',.2,.5),x,1.665,-.2));
+const sg=new THREE.Group();sc.add(sg);const scm=new THREE.MeshBasicMaterial({color:'#ff8a30',transparent:true,opacity:.2,side:THREE.DoubleSide});add(new THREE.ConeGeometry(.55,.9,28,1,true),scm,0,1.25,0,sg);add(new THREE.PlaneGeometry(.9,.04),new THREE.MeshBasicMaterial({color:'#ff8a30',transparent:true,opacity:.8,side:THREE.DoubleSide}),0,.96,0,sg).rotation.x=-Math.PI/2;
+/* sensors */
+const POD=[[.55,.86,-.3],[.55,.86,-.05],[.55,.86,.2]];POD.forEach(p=>{add(Bx(.1,.05,.07),Wt,...p);add(Bx(.02,.02,.02),BM('#2f8cff'),p[0],p[1]+.03,p[2])});
+[[-.1,.915,-.62],[.1,.915,-.62],[-.08,.925,-.45],[.08,.925,-.45],[0,.93,-.37]].forEach(p=>{add(new THREE.CylinderGeometry(.022,.022,.012,14),M('#e6ebef',.5),...p);cable(crv(p,[p[0]+.25,.99,p[2]],POD[0]),'#56626d')});
+add(Bx(.05,.04,.07),M('#38424c'),.3,.745,.17);add(Bx(.03,.012,.03),BM('#ff3b30'),.3,.77,.17);cable(crv([.3,.76,.2],[.42,.9,.22],POD[2]),'#56626d');
+const bd=add(new THREE.TorusGeometry(.157,.013,8,36),M('#2f6fd6',.5),0,.78,-.32);cable(crv([.2,.8,-.3],[.4,.9,-.2],POD[1]),'#56626d');
+/* edge unit, power, network, displays */
+add(Bx(.62,1.1,.6),Wt,2.3,.6,-2);add(Bx(.5,.62,.02),Dk,2.3,.78,-1.69);add(Bx(.4,.03,.02),BM('#2f8cff'),2.3,.95,-1.68);add(Bx(.4,.03,.02),BM('#1fb37a'),2.3,.6,-1.68);
+add(Bx(.5,.3,.5),Dk,3.05,.15,-2.2);add(Bx(.05,.04,.02),BM('#1fb37a'),3.2,.2,-1.94);cable(crv([2.8,.2,-2.15],[2.65,.3,-2.05],[2.6,.35,-2]),'#56626d');
+add(Bx(.55,.08,.2),Wt,3.2,1.7,-2.9);[3,3.1,3.2,3.3].forEach(x=>add(Bx(.03,.03,.02),BM('#1fb37a'),x,1.7,-2.79));cable(crv([2.6,1.1,-2.3],[3,1.3,-2.8],[3.2,1.65,-2.88]),'#56626d');cable(crv([3.3,1.75,-2.92],[3.3,3,-2.92],[3.3,4.2,-2.92]),'#56626d');
+add(Bx(1.76,1.06,.06),Dk,-1.6,1.75,-2.97);add(new THREE.PlaneGeometry(1.64,.92),new THREE.MeshBasicMaterial({map:tm}),-1.6,1.75,-2.935);
+const bm=BM(LC[0]);add(Bx(.16,.04,.1),Dk,-1.6,2.3,-2.96);add(new THREE.CylinderGeometry(.05,.05,.12,14),bm,-1.6,2.38,-2.96);
+const gp=new THREE.Group();gp.position.set(-1.9,1.3,-.8);gp.rotation.y=.6;sc.add(gp);
+add(Bx(1.04,1.28,.03),new THREE.MeshStandardMaterial({color:'#d8e8f4',transparent:true,opacity:.3,roughness:.1}),0,0,0,gp);add(new THREE.PlaneGeometry(1,1.22),new THREE.MeshBasicMaterial({map:tg,transparent:true}),0,0,.02,gp);
+[[1.08,.03,0,.65],[1.08,.03,0,-.65],[.03,1.3,.53,0],[.03,1.3,-.53,0]].forEach(a=>add(Bx(a[0],a[1],.05),Wt,a[2],a[3],0,gp));add(new THREE.CylinderGeometry(.03,.03,.65,10),Gr,0,-.975,-.05,gp);add(new THREE.CylinderGeometry(.3,.3,.04,24),Gr,0,-1.28,-.05,gp);
+/* clinician */
+const cl=new THREE.Group();sc.add(cl);[-.1,.1].forEach(x=>add(new THREE.CylinderGeometry(.08,.08,.8,12),M('#2b3a4a'),x,.4,0,cl));add(new THREE.CylinderGeometry(.17,.17,.6,16),M('#2f8fb5',.7),0,1.1,0,cl);add(new THREE.SphereGeometry(.11,16,12),SK,0,1.55,0,cl);[-.22,.22].forEach(x=>add(new THREE.CylinderGeometry(.045,.045,.55,10),M('#2f8fb5',.7),x,1.08,0,cl));
+/* data packets */
+const SRC=[[10,'#13b57a',crv(POD[0],[.9,1.5,-.9],[1.6,1.6,-1.5],[2.1,1.2,-1.75])],[16,'#8a5cf6',crv(POD[2],[.95,1.3,-.5],[1.6,1.4,-1.3],[2.1,1,-1.75])],[21,'#2f8cff',crv(POD[1],[.9,1.4,-.7],[1.6,1.5,-1.4],[2.1,1.1,-1.75])],[26,'#ff8a30',crv([-.2,1.7,-.2],[.2,2.3,-.6],[1.3,2.1,-1.2],[2.1,1.4,-1.75])],[31,'#1ab5d8',crv([.2,1.7,-.2],[.5,2.2,-.7],[1.4,1.9,-1.3],[2.1,1.3,-1.75])],[36,'#10202f',crv([2.2,1.3,-1.9],[1,2.3,-2.6],[-.7,2.1,-2.85])],[36,'#10202f',crv([2.5,1.2,-2.2],[2.9,1.5,-2.6],[3.2,1.68,-2.85])]];
+const pk=[];SRC.forEach(s=>{s[3]=new THREE.Line(new THREE.BufferGeometry().setFromPoints(s[2].getPoints(40)),new THREE.LineBasicMaterial({color:s[1],transparent:true,opacity:.4}));sc.add(s[3]);for(let k=0;k<4;k++)pk.push([add(new THREE.SphereGeometry(.028,10,8),BM(s[1]),0,0,0),s,k])});
+
+/* ===== orbit camera ===== */
+const VIEWS={overview:[.6,.35,7.5,0,.9,-.4],patient:[.5,.5,3,0,.8,-.2],display:[-.2,.2,4,-1.7,1.5,-1.5],edge:[.9,.25,4.5,2.4,1,-2]};
+let tv=[...VIEWS.overview],cv=[...VIEWS.overview],pd=null;
+document.querySelectorAll('[data-view]').forEach(b=>b.onclick=()=>tv=[...VIEWS[b.dataset.view]]);
+const cvs=$('gl');cvs.onpointerdown=e=>{pd=e.clientX+','+e.clientY;cvs.setPointerCapture(e.pointerId)};
+cvs.onpointermove=e=>{if(pd){const[a,b]=pd.split(',').map(Number);tv[0]-=(e.clientX-a)*.006;tv[1]=C(tv[1]+(e.clientY-b)*.006,-.1,1.4);pd=e.clientX+','+e.clientY}};cvs.onpointerup=cvs.onpointercancel=()=>pd=null;
+cvs.addEventListener('wheel',e=>{e.preventDefault();tv[2]=C(tv[2]*(1+e.deltaY*.001),1.5,12)},{passive:false});
+function setCam(){for(let i=0;i<6;i++)cv[i]+=(tv[i]-cv[i])*.08;const[az,el,d,x,y,z]=cv;cam.position.set(x+d*Math.sin(az)*Math.cos(el),y+d*Math.sin(el),z+d*Math.cos(az)*Math.cos(el));cam.lookAt(x,y,z)}
+/* ===== labels ===== */
+const HW=['Medical bed','Thermal camera','RGB / depth camera','ECG electrodes','Pulse oximeter','Respiratory sensor','Edge AI computer','Main display','Network switch','Backup power','Alert beacon'];
+const POS=[[0,.5,.95],[-.2,1.72,-.2],[.2,1.72,-.2],[0,.95,-.5],[.3,.78,.2],[0,.95,-.32],[2.3,1.3,-2],[-2.3,1.3,-2.9],[3.2,1.8,-2.9],[3.05,.4,-2.2],[-1.6,2.5,-2.9]];
+const LB=HW.map((h,i)=>{const el=document.createElement('div');el.className='lb';el.textContent=h;$('lab').appendChild(el);return{el,p:V3(...POS[i])}});let showLabels=true;$('tl').onclick=()=>showLabels=!showLabels;
+/* ===== live frame loop ===== */
+let W=1,H=1,fr=0,lf=performance.now(),cl_e=0;
+function rs(){const r=st.getBoundingClientRect();W=r.width;H=r.height;rd.setSize(W,H,false);cam.aspect=W/H;cam.updateProjectionMatrix()}addEventListener('resize',rs);rs();
+function frame(now){const dt=Math.min(.1,(now-lf)/1000);lf=now;const v=live.v,r=live.r,L=live.L,age=k=>now-live.seen[k]<8000;
+ setCam();
+ let mn=1e9,mx=-1e9;for(const q of B.r)if(isFinite(q)){mn=Math.min(mn,q);mx=Math.max(mx,q)}breath=age('resp')&&mx>mn?(B.r[N-1]-(mn+mx)/2)/((mx-mn)/2):0;
+ if(isFinite(v.hr)){hph=(hph+dt*v.hr/60)%1;pulse=G(hph,.28,.05)}else pulse=0;
+ parts.forEach(o=>{const mt=o.material,n=o.userData.n;mt.wireframe=false;mt.color.copy(o.userData.c);if(n=='chest'&&r.h>.2)mt.color.lerp(OR,C(r.h));mt.emissive.set('#000000')});
+ const b=breath;ch.scale.set(1.3*(1+.03*b),1+.05*b,1);bd.scale.set(1.3*(1+.03*b),1+.05*b,1);sg.visible=false;
+ const has=[age('ecg'),age('spo2')||age('ppg'),age('resp'),false,false,true,true];
+ SRC.forEach((s,i)=>{const on=live.conn&&[age('ecg'),age('ppg')||age('spo2'),age('resp'),false,false,live.conn,live.conn][i];s[3].visible=on;pk.filter(a=>a[1]===s).forEach(a=>{a[0].visible=on;if(on)a[0].position.copy(s[2].getPoint((now/1000*.35+a[2]/4)%1))})});
+ bm.color.set(LC[L]).multiplyScalar(L>=3?.65+.35*Math.sin(now/110):1);
+ cl_e+=((L==4?1:0)-cl_e)*Math.min(1,dt*.35);cl.position.set(1.4-1.9*cl_e,0,-2.5+.2*cl_e);cl.rotation.y=-1.2-.37*cl_e;
+ if(fr++%2==0){drawMain(v,r,L);drawGlass(v,r,L);tm.needsUpdate=true;tg.needsUpdate=true}
+ rd.render(sc,cam);
+ LB.forEach(l=>{const p=l.p.clone().project(cam);const on=showLabels&&p.z<1;l.el.style.opacity=on?1:0;if(on)l.el.style.transform=`translate(${(p.x*.5+.5)*W}px,${(-p.y*.5+.5)*H}px) translate(8px,-50%)`});
+ $('v_sp').textContent=F(v.sp);$('v_hr').textContent=F(v.hr);$('v_rr').textContent=F(v.rr);$('v_tp').textContent=isFinite(v.tp)?v.tp.toFixed(1):'--';
+ LN.forEach((n,i)=>{const el=$('l'+i);el.style.background=i==L?LC[i]:'transparent';el.style.color=i==L?(i==4?'#fff':'#10202f'):'#8a99a8'});
+ $('emg').classList.toggle('off',L<4);$('cn').textContent=live.conn?(live.ass?'Live: '+(live.src||'connected'):'Connected, waiting for the first 60 s window'):'Waiting for backend';$('cn').style.background=live.conn?'#1fb37a':'#f0a020';
+ requestAnimationFrame(frame)}
+connect();requestAnimationFrame(frame);
+
+</script></body></html>
