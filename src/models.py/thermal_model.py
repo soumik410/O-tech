@@ -33,3 +33,10 @@ class ThermalTempModel:
     @staticmethod
     def load(path):
         return joblib.load(path)
+
+
+
+
+    
+
+    
