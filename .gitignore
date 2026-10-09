@@ -1,22 +1,30 @@
-Set-Location "D:\O₂tech"
-
-@'
-.env
-.env.*
-!.env.example
+# environments and caches (never commit)
 venv/
-.venv/
-__pycache__/
-*.py[cod]
-.pytest_cache/
-.mypy_cache/
 pip-cache/
-temp/
 wheels/
-data/raw/
-data/cache/
-*.log
-'@ | Set-Content -Path ".gitignore"
+temp/
+_old/
+__pycache__/
+*.pyc
 
-Write-Host "`n--- Git ignore file created ---"
-Get-Content ".gitignore"
+# secrets (keep .env.example)
+.env
+
+# datasets: MIMIC/PhysioNet terms forbid redistribution
+/data/
+/backend/data/
+*.csv
+*.edf
+*.dat
+*.hea
+
+# trained weights and run outputs
+*.pt
+*.pth
+*.ckpt
+*.onnx
+runs/
+checkpoints/
+
+.DS_Store
+.vscode/
